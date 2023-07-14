@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET Core Launch (console)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/source/bin/Debug/net7.0/source.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/source",
+      "console": "externalTerminal"
+    }
+  ]
+}
