@@ -1,2 +1,2 @@
 # spp
-Sugar for C++
+Minimal Sugar for C++

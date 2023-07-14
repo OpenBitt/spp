@@ -1,0 +1,206 @@
+enum eval_result_e:
+  ok
+  bad_syntax_err
+  bad_grammar_err
+  trailing_syntax_err
+  stack_err
+
+enum token_kind_e(chr):
+  bad     = '\0'
+  lit_int = 'i'
+  plus    = '+'
+  minus   = '-'
+  star    = '*'
+  slash   = '/'
+  open    = '('
+  close   = ')'
+
+let token_value_t = str | uint
+let token_t = (kind: token_kind_e, value: token_value_t)
+
+impl token_t:
+  static fn new(kind: token_kind_e, value: token_value_t) -> this_t:
+    return (
+      kind: kind,
+      value: value,
+    )
+
+  let default = new(.bad, 0)
+
+let lexer_t = (expr: str, idx: uint, cur: token_t)
+
+impl lexer_t:
+  static fn new(expr: str) -> this_t:
+    return (
+      expr: expr,
+      idx: 0,
+      cur: undefined
+    )
+
+  fn match_token(token_kinds: []token_kind_e) -> bool:
+    for k in token_kinds:
+      if cur.kind == k:
+        return true
+    
+    return false
+
+  fn expect_token(token_kinds: []token_kind_e) -> eval_result_e:
+    if not match_token(token_kinds):
+      return .bad_syntax_err
+
+  fn is_eof() -> bool:
+    return idx >= expr.len()
+  
+  fn cur_char() -> chr:
+    return expr[idx]
+  
+  fn advance():
+    advance_of(1)
+  
+  fn advance_of(count):
+    idx += count
+
+  fn tokenize_lit_int():
+    let c = chr(undefined)
+    cur.kind = token_kind_e.lit_int
+
+    while not is_eof() and (c = cur_char()).is_digit():
+      cur.value = chr(
+        u8(cur.value) * 10 + (c - b'0')
+      )
+      
+      advance()
+    
+    advance_of(-1)
+
+  fn eat_white():
+    while not is_eof():
+      match cur_char():
+        case ' ':
+          advance()
+          
+        case _:
+          return
+
+  fn tokenize_operator() -> eval_result_e:
+    let c = cur_char()
+
+    match c:
+      case
+        .plus, .minus, .star, .slash,
+        .open, .close:
+          cur.kind = c
+      
+      case _:
+        return .bad_grammar_err
+
+  fn tokenize() -> eval_result_e:
+    eat_white()
+
+    # resetting the token to the bad one
+    # (this is necessary)
+    let cur = token_t.default
+
+    if is_eof():
+      return .bad_syntax_err
+    
+    if cur_char().is_digit():
+      try tokenize_lit_int()
+    else:
+      try tokenize_operator()
+
+    advance()
+
+let evaluator_t = (vstack: std.data.stack_t, lexer: lexer_t)
+
+impl evaluator_t:
+  static fn new(expr: str) -> this_t:
+    return (
+      vstack: std.data.stack_t.new(i64),
+      lexer: lexer_t.new(expr),
+    )
+
+  fn execute_binary_op(op: token_kind_e):
+    let r = vstack.pop()
+    let l = vstack.pop()
+    
+    let mut result = token_value_t(undefined)
+    match op:
+      case .plus:
+        result = l + r
+      
+      case .minus:
+        result = l - r
+      
+      case .star:
+        result = l * r
+      
+      case .slash:
+        result = l / r
+      
+      case _:
+        unreachable!()
+
+    vstack.load(result)
+
+  fn evaluate_term() -> eval_result_e:
+    try lexer.tokenize()
+
+    match lexer.cur.kind:
+      case token_kind_e.lit_int:
+        vstack.load(lexer.cur.value)
+      
+      case token_kind_e.open:
+        try eval_expr()
+        lexer.expect_token([.close])
+      
+      case token_kind_e.minus:
+        try evaluate_term()
+        vstack.load(-vstack.pop())
+
+      case _:
+        return .bad_syntax_err
+
+    lexer.tokenize()
+
+  fn evaluate_binary_expression(
+    op_kinds: []token_kind_e,
+    parsing_fn: fn (this_t) -> eval_result_e,
+  ) -> eval_result_e:
+    try parsing_fn(this)
+
+    while lexer.match_token(op_kinds):
+      let op_kind = lexer.cur.kind
+
+      try parsing_fn(this)
+      execute_binary_op(op_kind)
+
+  fn eval_multiplicative_expr() -> eval_result_e:
+    return evaluate_binary_expression(
+      [.star, .slash],
+      this_t.evaluate_term
+    )
+
+  fn eval_additive_expr() -> eval_result_e:
+    return evaluate_binary_expression(
+      [.plus, .minus],
+      this_t.eval_multiplicative_expr
+    )
+
+  fn eval_expr() -> eval_result_e:
+    return eval_additive_expr()
+
+  fn eval(result: &mut int) -> eval_result_e:
+    try eval_expr()
+
+    if lexer.cur.kind != 0 or not lexer.is_eof():
+      return .trailing_syntax_err
+    
+    if vstack.count() != 1:
+      return .stack_err
+
+    *result = vstack.pop()
+
+fn eval(expr: str, result: &mut int) -> eval_result_e:
+  let e = evaluator_t.new(expr)
+  return e.eval(result)

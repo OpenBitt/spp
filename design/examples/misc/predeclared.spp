@@ -1,0 +1,21 @@
+# here a list of predeclared symbols
+std
+void
+chr
+str
+bool
+this_t
+this
+
+i1 i2 i3 # ...
+i64
+
+u1 u2 u3 # ...
+u64
+
+f32 f64
+
+int  # isize
+uint # usize
+
+# plus all the builtin functions `mod!()` etc...

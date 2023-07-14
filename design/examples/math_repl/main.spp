@@ -1,0 +1,15 @@
+let math_engine = mod!('math_engine')
+let io = std.io
+
+fn main():
+  io.println('MathRepl (crim)')
+  repl()
+
+fn repl():
+  loop:
+    let input = io.input('% ')
+
+    try math_engine.eval(input, let result):
+      io.println(result)
+    catch err:
+      io.println('error: %{err}')

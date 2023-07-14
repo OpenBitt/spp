@@ -1,0 +1,66 @@
+fn vec_t(t: type) -> type:
+  let t = (
+    blen: uint,
+    bcap: uint,
+    buf: &t,
+  )
+
+  impl t:
+    let default_cap = uint(1000)
+
+    static fn new() -> this_t:
+      return from_len(0)
+
+    static fn from_len(len: uint) -> this_t:
+      let cap = std.math.max(
+        len, default_cap
+      )
+
+      return (
+        blen: len,
+        bcap: cap,
+        arr: std.mem.arr(t, cap)
+      )
+    
+    fn add(other: this_t) -> this_t:
+      todo!()
+    
+    fn append(e: t):
+      todo!()
+
+    fn nth(i: uint) -> &t:
+      return addr!(
+        id!(arr) + i * size!(t)
+      )
+    
+    fn len() -> uint:
+      return blen
+
+    fn eq(other: this_t) -> bool:
+      if len() != other.len():
+        return false
+      
+      if id!(buf) == id!(other.buf):
+        return true
+
+      for i in len():
+        if this[i] != other[i]:
+          return false
+      
+      return true
+
+  return t
+
+test 'sample':
+  let a: vec_t(u8) = [1, 2, 3]
+  a.append(0)
+  a[^0] = a[^1] + 1 # assigning `4`
+
+  let b: vec_t(u8) = [5, 6, 7]
+  b.append(8)
+
+  let c = a + b
+
+  expect!(
+    c == [n for n in 1..=8]
+  )

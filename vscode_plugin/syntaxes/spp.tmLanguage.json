@@ -1,0 +1,430 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "spp",
+	"scopeName": "source.spp",
+	"patterns": [
+		{
+			"comment": "boxed slice literal",
+			"begin": "(<)(\\[)",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.brackets.angle.spp"
+				},
+				"2": {
+					"name": "punctuation.brackets.square.spp"
+				}
+			},
+			"end": ">",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.brackets.angle.spp"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#block-comments"
+				},
+				{
+					"include": "#comments"
+				},
+				{
+					"include": "#lifetimes"
+				},
+				{
+					"include": "#punctuation"
+				},
+				{
+					"include": "#types"
+				}
+			]
+		},
+		{
+			"comment": "external crate imports",
+			"name": "meta.import.spp",
+			"begin": "\\b(extern)\\s+(crate)",
+			"beginCaptures": {
+				"1": {
+					"name": "storage.type.spp"
+				},
+				"2": {
+					"name": "keyword.other.crate.spp"
+				}
+			},
+			"end": ";",
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.semi.spp"
+				}
+			},
+			"patterns": [
+				{
+					"include": "#block-comments"
+				},
+				{
+					"include": "#comments"
+				},
+				{
+					"include": "#keywords"
+				},
+				{
+					"include": "#punctuation"
+				}
+			]
+		},
+		{
+			"include": "#block-comments"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#constants"
+		},
+		{
+			"include": "#types"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#lifetimes"
+		},
+		{
+			"include": "#macros"
+		},
+		{
+			"include": "#namespaces"
+		},
+		{
+			"include": "#punctuation"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#variables"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"comment": "line comments",
+					"name": "comment.line.double-slash.spp",
+					"match": "\\s*\\#.*"
+				}
+			]
+		},
+		"constants": {
+			"patterns": [
+				{
+					"comment": "dot dot",
+					"name": "storage.type.spp",
+					"match": "\\.\\."
+				},
+				{
+					"comment": "constant declarations",
+					"match": "\\b(const)\\s+([A-Z][A-Za-z0-9_]*)\\b",
+					"captures": {
+						"1": {
+							"name": "storage.type.spp"
+						},
+						"2": {
+							"name": "constant.other.caps.spp"
+						}
+					}
+				},
+				{
+					"comment": "decimal integers and floats",
+					"name": "constant.numeric.decimal.spp",
+					"match": "\\b\\d[\\d\\']*(\\.?)[\\d\\']*(?:(E)([+-])([\\d_]+))?\\b",
+					"captures": {
+						"1": {
+							"name": "punctuation.separator.dot.decimal.spp"
+						},
+						"2": {
+							"name": "keyword.operator.exponent.spp"
+						},
+						"3": {
+							"name": "keyword.operator.exponent.sign.spp"
+						},
+						"4": {
+							"name": "constant.numeric.decimal.exponent.mantissa.spp"
+						},
+						"5": {
+							"name": "entity.name.type.numeric.spp"
+						}
+					}
+				},
+				{
+					"comment": "hexadecimal integers",
+					"name": "constant.numeric.hex.spp",
+					"match": "\\b0x[\\da-fA-F_]+\\b",
+					"captures": {
+						"1": {
+							"name": "entity.name.type.numeric.spp"
+						}
+					}
+				},
+				{
+					"comment": "octal integers",
+					"name": "constant.numeric.oct.spp",
+					"match": "\\b0o[0-7_]+\\b",
+					"captures": {
+						"1": {
+							"name": "entity.name.type.numeric.spp"
+						}
+					}
+				},
+				{
+					"comment": "binary integers",
+					"name": "constant.numeric.bin.spp",
+					"match": "\\b0b[01_]+\\b",
+					"captures": {
+						"1": {
+							"name": "entity.name.type.numeric.spp"
+						}
+					}
+				},
+				{
+					"comment": "booleans",
+					"name": "constant.numeric.decimal.exponent.mantissa.spp",
+					"match": "\\b(true|undefined|false|null)\\b"
+				}
+			]
+		},
+		"escapes": {
+			"comment": "escapes: ASCII, byte, Unicode, quote, regex",
+			"name": "entity.name.namespace.spp",
+			"match": "(\\\\)(?:(?:(x[0-7][0-7a-fA-F])|(u(\\{)[\\da-fA-F]{4,6}(\\}))|.))"
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"comment": "control flow keywords",
+					"name": "keyword.control.spp",
+					"match": "\\b(mut|let|_|catch|type|static|pass|case|test|use|in|not|break|continue|else|elif|for|yield|if|loop|match|return|try|and|or|while|as|impl|out|is|enum|with|fn)\\b"
+				},
+				{
+					"comment": "logical operators",
+					"name": "keyword.operator.logical.spp",
+					"match": "(\\^|\\||\\|\\||&&|<<|>>|!)(?!=)"
+				},
+				{
+					"comment": "logical AND, borrow references",
+					"name": "keyword.operator.borrow.and.spp",
+					"match": "&(?![&=])"
+				},
+				{
+					"comment": "assignment operators",
+					"name": "keyword.operator.assignment.spp",
+					"match": "(\\+=|-=|\\*=|/=|%=|\\^=|&=|\\|=|<<=|>>=)"
+				},
+				{
+					"comment": "single equal",
+					"name": "keyword.control.spp",
+					"match": "(?<![<>])=(?!=|>)"
+				},
+				{
+					"comment": "comparison operators",
+					"name": "keyword.operator.comparison.spp",
+					"match": "(=(=)?(?!>)|!=|<=|(?<!=)>=)"
+				},
+				{
+					"comment": "math operators",
+					"name": "keyword.operator.math.spp",
+					"match": "(([+%]|(\\*(?!\\w)))(?!=))|(-(?!>))|(/)"
+				},
+				{
+					"comment": "less than, greater than (special case)",
+					"match": "(?:\\b|(?:(\\))|(\\])|(\\})))[ \\t]+([<>])[ \\t]+(?:\\b|(?:(\\()|(\\[)|(\\{)))",
+					"captures": {
+						"1": {
+							"name": "punctuation.brackets.round.spp"
+						},
+						"2": {
+							"name": "punctuation.brackets.square.spp"
+						},
+						"3": {
+							"name": "punctuation.brackets.curly.spp"
+						},
+						"4": {
+							"name": "keyword.operator.comparison.spp"
+						},
+						"5": {
+							"name": "punctuation.brackets.round.spp"
+						},
+						"6": {
+							"name": "punctuation.brackets.square.spp"
+						},
+						"7": {
+							"name": "punctuation.brackets.curly.spp"
+						}
+					}
+				},
+				{
+					"comment": "namespace operator",
+					"name": "keyword.operator.namespace.spp",
+					"match": "::"
+				},
+				{
+					"comment": "dereference asterisk",
+					"match": "(\\*)(?=\\w+)",
+					"captures": {
+						"1": {
+							"name": "keyword.operator.dereference.spp"
+						}
+					}
+				},
+				{
+					"comment": "subpattern binding",
+					"name": "keyword.operator.subpattern.spp",
+					"match": "@"
+				},
+				{
+					"comment": "ranges, range patterns",
+					"name": "keyword.operator.range.spp",
+					"match": "\\.{2}(=|\\.)?"
+				},
+				{
+					"comment": "hashrocket, fat arrow",
+					"name": "keyword.operator.arrow.fat.spp",
+					"match": "=>"
+				},
+				{
+					"comment": "question mark operator, questionably sized, macro kleene matcher",
+					"name": "keyword.operator.question.spp",
+					"match": "\\?"
+				}
+			]
+		},
+		"interpolations": {
+			"comment": "curly brace interpolations",
+			"name": "meta.interpolation.spp",
+			"match": "({)[^\"{}]*(})",
+			"captures": {
+				"1": {
+					"name": "punctuation.definition.interpolation.spp"
+				},
+				"2": {
+					"name": "punctuation.definition.interpolation.spp"
+				}
+			}
+		},
+		"macros": {
+			"patterns": [
+				{
+					"comment": "macros",
+					"name": "meta.macro.spp",
+					"match": "([a-zA-Z_][A-Za-z0-9_]*!)",
+					"captures": {
+						"1": {
+							"name": "keyword.control.spp"
+						}
+					}
+				}
+			]
+		},
+		"namespaces": {
+			"patterns": [
+				{
+					"comment": "namespace (non-type, non-function path segment)",
+					"match": "(?<![A-Za-z0-9_])([a-z0-9_]+)((?<!super)::)",
+					"captures": {
+						"1": {
+							"name": "entity.name.namespace.spp"
+						},
+						"2": {
+							"name": "keyword.operator.namespace.spp"
+						}
+					}
+				}
+			]
+		},
+		"types": {
+			"patterns": [
+				{
+					"include": "#constants"
+				},
+				{
+					"comment": "numeric types",
+					"match": "\\b([a-z][a-z0-9_]*(_t|_i|_e)|f32|f64|void|this|std|sys|bool|chr|[iu]([1-9]|[1-5][0-9]|6[0-4])|int|uint|str)\\b",
+					"captures": {
+						"1": {
+							"name": "entity.name.namespace.spp"
+						}
+					}
+				}
+			]
+		},
+		"punctuation": {
+			"patterns": [
+				{
+					"comment": "comma",
+					"name": "punctuation.comma.spp",
+					"match": ","
+				},
+				{
+					"comment": "curly braces",
+					"name": "punctuation.brackets.curly.spp",
+					"match": "[{}]"
+				},
+				{
+					"comment": "parentheses, round brackets",
+					"name": "punctuation.brackets.round.spp",
+					"match": "[()]"
+				},
+				{
+					"comment": "square brackets",
+					"name": "punctuation.brackets.square.spp",
+					"match": "[\\[\\]]"
+				},
+				{
+					"comment": "angle brackets",
+					"name": "punctuation.brackets.angle.spp",
+					"match": "(?<!=)[<>]"
+				}
+			]
+		},
+		"strings": {
+			"patterns": [
+				{
+					"comment": "double-quoted strings and byte strings",
+					"name": "string.quoted.double.spp",
+					"begin": "([bc]?)(')",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control.spp"
+						},
+						"2": {
+							"name": "punctuation.definition.string.spp"
+						}
+					},
+					"end": "'",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.string.spp"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#escapes"
+						},
+						{
+							"include": "#interpolations"
+						}
+					]
+				}
+			]
+		},
+		"variables": {
+			"patterns": [
+				{
+					"comment": "variables",
+					"name": "variable.other.spp",
+					"match": "\\b(?<!(?<!\\.)\\.)(?:r#(?!(crate|[Ss]elf|super)))?[a-z0-9_]+\\b"
+				}
+			]
+		}
+	}
+}

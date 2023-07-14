@@ -1,0 +1,18 @@
+let person_t = (name: str, age: 0..=120, is_cool: bool)
+
+impl person_t:
+  let adult_age = 18
+
+  fn is_adult() -> bool:
+    return age >= adult_age
+
+test 'p':
+  # shorthand for `person_t((name: .., ..))`
+  let p = person_t(name: 'crim', age: 18, is_cool: true)
+  expect!(p.is_adult())
+
+  let k = person_t(undefined)
+  k.age = 121 # compilation error
+  
+  let mut n = 121
+  k.age = n # runtime error (only in sb -> safe builds)

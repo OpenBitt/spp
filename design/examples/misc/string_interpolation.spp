@@ -1,0 +1,25 @@
+fn main():
+  let a = 10
+  let b = 'a: %{a}'
+
+  # since this one is interpolated at comtime
+  # the result is still a `str` static value
+  # and not an `std.fmt_t`
+  expect!(b is str)
+
+  let mut c = 10
+  let mut d = 'c: %{c}'
+
+  # this one produces a runtime value
+  # which is represented by an array of strings
+  # which are the parts interpolated
+  expect!(d is std.fmt_t)
+  dbg!(d) # [string_interpolation:16:1] d = fmt_t(['c: ', '10'])
+
+  # you can always build the full string
+  # from this splitted buffer;
+  # but having a fixed array which is copied
+  # on the stack every time, helps with performance;
+  # maybe you just want to print them, and you don't
+  # need an entire allocation
+  let string = d.to_str()
