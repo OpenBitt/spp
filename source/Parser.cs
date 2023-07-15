@@ -229,7 +229,11 @@ namespace Spp
       switch (current.Kind)
       {
         case TokenKind.Pass:
-          body.Nop(current.Position);
+          ParsePassStatement(body);
+          break;
+
+        case TokenKind.Return:
+          ParseReturnStatement(body);
           break;
         
         default:
@@ -238,6 +242,32 @@ namespace Spp
           ));
           return;
       }
+    }
+
+    bool HasExpression()
+    {
+      return
+        lexer.Current.Kind != TokenKind.Eof &&
+        MatchTokenMode(TokenMode.OnTheSameLine);
+    }
+
+    void ParseReturnStatement(CodeChunk body)
+    {
+      var position = lexer.Previous.Position;
+
+      if (!HasExpression())
+      {
+        body.RetVoid(position);
+        return;
+      }
+      
+      ParseExpression(body, TokenMode.OnTheSameLine);
+      body.Ret(position);
+    }
+
+    void ParsePassStatement(CodeChunk body)
+    {
+      body.Nop(lexer.Previous.Position);
     }
 
     void ParseBlock(CodeChunk body)

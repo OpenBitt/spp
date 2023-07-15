@@ -24,7 +24,8 @@ namespace Spp
     Plus,
     Star,
     Slash,
-    Reminder
+    Reminder,
+    Return
   }
 
   public enum TokenMode
@@ -67,6 +68,7 @@ namespace Spp
     {
       ["fn"] = TokenKind.Fn,
       ["pass"] = TokenKind.Pass,
+      ["return"] = TokenKind.Return,
     };
 
     readonly Dictionary<string, TokenKind> DOUBLE_PUNCTUATIONS = new()

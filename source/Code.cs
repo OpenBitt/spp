@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Spp
 {
   public interface IDefinition
@@ -53,6 +55,11 @@ namespace Spp
     {
       TopLevels = new();
     }
+
+    public override string ToString()
+    {
+      return JsonConvert.SerializeObject(this, Formatting.Indented);
+    }
   }
 
   public class CodeChunk
@@ -95,6 +102,20 @@ namespace Spp
     public void Nop(Position position)
     {
       Emit(new Instruction.Nop(
+        position
+      ));
+    }
+
+    public void Ret(Position position)
+    {
+      Emit(new Instruction.Ret(
+        position
+      ));
+    }
+
+    public void RetVoid(Position position)
+    {
+      Emit(new Instruction.RetVoid(
         position
       ));
     }
@@ -194,6 +215,26 @@ namespace Spp
       public Position Position { get; init; }
 
       public Rem(Position position)
+      {
+        Position = position;
+      }
+    }
+
+    public struct Ret : Instruction
+    {
+      public Position Position { get; init; }
+
+      public Ret(Position position)
+      {
+        Position = position;
+      }
+    }
+
+    public struct RetVoid : Instruction
+    {
+      public Position Position { get; init; }
+
+      public RetVoid(Position position)
       {
         Position = position;
       }
