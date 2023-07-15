@@ -17,7 +17,21 @@ namespace Spp
     RBracket,
     LBrace,
     RBrace,
-    Pass
+    Pass,
+    Comma,
+    Arrow,
+    Minus,
+    Plus,
+    Star,
+    Slash,
+    Reminder
+  }
+
+  public enum TokenMode
+  {
+    OnTheSameLine,
+    OnNewLine,
+    NoMatter
   }
   
   public struct Token
@@ -28,13 +42,16 @@ namespace Spp
 
     public int Indent { get; init; }
 
+    public TokenMode Mode { get; init; }
+
     public Position Position { get; init; }
 
-    public Token(TokenKind kind, string value, int indent, Position position)
+    public Token(TokenKind kind, string value, int indent, TokenMode mode, Position position)
     {
       Kind = kind;
       Value = value;
       Indent = indent;
+      Mode = mode;
       Position = position;
     }
 
@@ -55,6 +72,7 @@ namespace Spp
     readonly Dictionary<string, TokenKind> DOUBLE_PUNCTUATIONS = new()
     {
       ["=="] = TokenKind.EqEq,
+      ["->"] = TokenKind.Arrow,
     };
 
     readonly Dictionary<char, TokenKind> SINGLE_PUNCTUATIONS = new()
@@ -66,9 +84,13 @@ namespace Spp
       [']'] = TokenKind.RBracket,
       ['{'] = TokenKind.LBrace,
       ['}'] = TokenKind.RBrace,
+      [','] = TokenKind.Comma,
+      ['+'] = TokenKind.Plus,
+      ['-'] = TokenKind.Minus,
+      ['*'] = TokenKind.Star,
+      ['/'] = TokenKind.Slash,
+      ['%'] = TokenKind.Reminder,
     };
-
-    public const int NOT_INDENTED = -1;
 
     public Token Previous { get; private set; }
 
@@ -81,8 +103,9 @@ namespace Spp
     readonly string code;
 
     int index;
-    int row;
     int indent;
+    TokenMode mode;
+    int row;
     int indexOfLineStart;
 
     public Lexer(Report report, string filename)
@@ -92,11 +115,11 @@ namespace Spp
 
       code = File.ReadAllText(filename);
       index = 0;
-      row = 0;
       indent = 0;
+      mode = TokenMode.OnNewLine;
+      row = 0;
       indexOfLineStart = 0;
 
-      Previous = Current = Next = new(TokenKind.Bad, "", 0, new());
       NextToken(); // now `Next` is something
 
       var repo = report.Repository as InMemorySourceRepository;
@@ -115,15 +138,27 @@ namespace Spp
 
     Position CurrentPosition => new(filename, new(row + 1, index - indexOfLineStart + 1));
 
-    int ConsumeIndent(Position position)
+    TokenMode ConsumeTokenMode()
+    {
+      var curMode = mode;
+      mode = TokenMode.OnTheSameLine;
+
+      return curMode;
+    }
+
+    int ConsumeIndent(TokenMode mode, Position position)
     {
       var curIndent = indent;
-      indent = NOT_INDENTED;
+      indent = 0;
 
-      // when the token is indented
-      // and the indent is not multiple of 2
-      if (curIndent != NOT_INDENTED && curIndent % 2 != 0)
-        report.AddDiagnostic(ReportHelper.OddIndent(curIndent, position));
+      // the token's indent can't be odd
+      if (mode == TokenMode.OnNewLine && curIndent % 2 != 0)
+      {
+        report.AddDiagnostic(ReportHelper.OddIndent(
+          curIndent, position
+        ));
+        curIndent -= 1;
+      }
 
       return curIndent;
     }
@@ -144,14 +179,14 @@ namespace Spp
             break;
 
           case ' ':
-            if (indent != NOT_INDENTED)
-              indent++;
+            indent++;
             break;
           
           case '\n':
             row++;
             indexOfLineStart = index + 1;
             indent = 0;
+            mode = TokenMode.OnNewLine;
             break;
           
           case '\r':
@@ -173,17 +208,14 @@ namespace Spp
         CurrentChar == '_';
     }
 
-    bool IsKeyword(string identifier, out TokenKind kind)
+    void IsKeywordToken(string identifier, ref TokenKind kind)
     {
       foreach (var kw in KEYWORDS)
         if (kw.Key == identifier)
         {
           kind = kw.Value;
-          return true;
+          return;
         }
-      
-      kind = TokenKind.Bad;
-      return false;
     }
 
     Token CollectWordToken()
@@ -191,7 +223,8 @@ namespace Spp
       var position = CurrentPosition;
       var length = 0;
       var startingIndex = index;
-      var indent = ConsumeIndent(position);
+      var mode = ConsumeTokenMode();
+      var indent = ConsumeIndent(mode, position);
 
       while (HasChar && MatchWordChar())
       {
@@ -209,20 +242,21 @@ namespace Spp
         length
       );
 
-      if (char.IsNumber(value[0]))
-        return new(TokenKind.Number, value, indent, position);
-      
-      if (IsKeyword(value, out var kind))
-        return new(kind, value, indent, position);
-      
-      return new(TokenKind.Identifier, value, indent, position);
+      var kind = TokenKind.Identifier;
+      IsNumberToken(value, ref kind);
+      IsKeywordToken(value, ref kind);
+
+      return new(kind, value, indent, mode, position);
     }
 
-    bool IsDoublePunctuation(out TokenKind kind, out string value)
+    void IsNumberToken(string value, ref TokenKind kind)
     {
-      kind = TokenKind.Bad;
-      value = "";
-      
+      if (char.IsNumber(value[0]))
+        kind = TokenKind.Number;
+    }
+
+    bool IsDoublePunctuationToken(ref TokenKind kind, ref string value)
+    {
       if (!HasNextChar)
         return false;
       
@@ -239,33 +273,30 @@ namespace Spp
       return false;
     }
 
-    bool IsSinglePunctuation(out TokenKind kind, out string value)
+    void IsSinglePunctuationToken(ref TokenKind kind, ref string value)
     {
-      kind = TokenKind.Bad;
       value = char.ToString(CurrentChar);
 
       foreach (var singlep in SINGLE_PUNCTUATIONS)
         if (singlep.Key == CurrentChar)
         {
           kind = singlep.Value;
-          return true;
+          return;
         }
-      
-      return false;
     }
 
     Token CollectPunctuationTokenOrBad()
     {
       var position = CurrentPosition;
-      var indent = ConsumeIndent(position);
+      var mode = ConsumeTokenMode();
+      var indent = ConsumeIndent(mode, position);
+      var kind = TokenKind.Bad;
+      var value = char.ToString(CurrentChar);
 
-      if (IsDoublePunctuation(out var kind, out var value))
-        return new(kind, value, indent, position);
+      if (!IsDoublePunctuationToken(ref kind, ref value))
+        IsSinglePunctuationToken(ref kind, ref value);
       
-      if (IsSinglePunctuation(out kind, out value))
-        return new(kind, value, indent, position);
-      
-      return new(TokenKind.Bad, value, indent, position);
+      return new(kind, value, indent, mode, position);
     }
 
     Token Tokenize()
@@ -274,8 +305,12 @@ namespace Spp
 
       Token token;
       if (!HasChar)
-        token = new(TokenKind.Eof, "", 0, CurrentPosition);
-      else if (MatchWordChar())
+        return new(
+          TokenKind.Eof, "", 0,
+          TokenMode.NoMatter, Current.Position
+        );
+
+      if (MatchWordChar())
         token = CollectWordToken();
       else
         token = CollectPunctuationTokenOrBad();
@@ -291,6 +326,17 @@ namespace Spp
       Next = Tokenize();
 
       return Current;
+    }
+
+    public ulong ParseNumberToken(Token token)
+    {
+      if (ulong.TryParse(token.Value, out var result))
+        return result;
+      
+      report.AddDiagnostic(ReportHelper.MalformedNumber(
+        token.Value, token.Position
+      ));
+      return 0;
     }
   }
 }

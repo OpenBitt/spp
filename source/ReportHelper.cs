@@ -19,7 +19,7 @@ namespace Spp
       Diagnostic
         .Error("Bad formatting")
         .WithCode("SPP1")
-        .WithNote("Indentation must be multiple of 2 spaces\n")
+        .WithNote("Number of spaces in indentation must be even\n")
         .WithLabel(new(
           position.Filename,
           position.Location,
@@ -75,6 +75,92 @@ namespace Spp
           position.Filename,
           position.Location,
           $"Expected token \"{expectedKind}\", got \"{actualKind}\""
+        ));
+    
+    public static Diagnostic ParameterRedefinition(string name, Position position) =>
+      Diagnostic
+        .Error("Redefinition of function parameter")
+        .WithCode("SPP6")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          $"Parameter \"{name}\" is already declared, redefinition is not allowed"
+        ));
+    
+    public static Diagnostic BadTokenMode(TokenMode expectedMode, Position position) =>
+      Diagnostic
+        .Error("Bad token mode")
+        .WithCode("SPP7")
+        .WithNote(
+          expectedMode == TokenMode.OnTheSameLine
+            ? "Move token to the previous line\n"
+            : "Move token to a new line\n"
+        )
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          expectedMode == TokenMode.OnTheSameLine
+            ? $"Expected token to be on the previous line, but it is on a new one"
+            : $"Expected token to be on a new line"
+        ));
+    
+    public static Diagnostic BadIndent(int expectedIndent, int actualIndent, Position position) =>
+      Diagnostic
+        .Error("Bad indentation")
+        .WithCode("SPP8")
+        .WithNote("Indentation levels must be 2 spaces each\n")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          $"Expected indentation of {expectedIndent} spaces, got {actualIndent} spaces"
+        ));
+    
+    public static Diagnostic BadStatementSyntax(TokenKind kind, Position position) =>
+      Diagnostic
+        .Error("Bad statement syntax")
+        .WithCode("SPP9")
+        .WithNote(
+@"A statement must be either a:
+      * Control flow statement (`return`, `break` ..)
+      * Assignment statement
+      * Selection statement (`if`, `while` ..)
+      .
+      .
+      * Variable/Function/Implementation definition
+")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          $"Expected statement, got token \"{kind}\""
+        ));
+    
+    public static Diagnostic BadExpressionSyntax(TokenKind kind, Position position) =>
+      Diagnostic
+        .Error("Bad expression syntax")
+        .WithCode("SPP10")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          $"Expected expression/term, got token \"{kind}\""
+        ));
+    
+    public static Diagnostic MalformedNumber(string value, Position position) =>
+      Diagnostic
+        .Error("Malformed number token")
+        .WithCode("SPP11")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          $"Token \"Number\" with value \"{value}\" is malformed"
+        ));
+    
+    public static Diagnostic ParameterRedefinitionInfo(Position position) =>
+      Diagnostic
+        .Info("Parameter previously defined here")
+        .WithLabel(new(
+          position.Filename,
+          position.Location,
+          ""
         ));
 
     public static Diagnostic TopLevelRedefinitionInfo(Position position) =>
