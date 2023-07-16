@@ -30,7 +30,11 @@ namespace Spp
     String,
     If,
     Else,
-    Elif
+    Elif,
+    While,
+    Let,
+    Mut,
+    Eq
   }
 
   public enum TokenMode
@@ -78,6 +82,9 @@ namespace Spp
       ["if"] = TokenKind.If,
       ["elif"] = TokenKind.Elif,
       ["else"] = TokenKind.Else,
+      ["while"] = TokenKind.While,
+      ["let"] = TokenKind.Let,
+      ["mut"] = TokenKind.Mut,
     };
 
     readonly Dictionary<string, TokenKind> DOUBLE_PUNCTUATIONS = new()
@@ -102,6 +109,7 @@ namespace Spp
       ['/'] = TokenKind.Slash,
       ['%'] = TokenKind.Reminder,
       ['.'] = TokenKind.Dot,
+      ['='] = TokenKind.Eq,
     };
 
     public Token Previous { get; private set; }

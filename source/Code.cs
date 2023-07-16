@@ -126,6 +126,17 @@ namespace Spp
       Instructions = new();
     }
 
+    
+    public override string ToString()
+    {
+      var b = new StringBuilder("\n");
+
+      foreach (var i in Instructions)
+        b.AppendLine(i.ToString());
+
+      return b.ToString();
+    }
+
     public Instruction Emit(Instruction instruction)
     {
       Instructions.Add(instruction);
@@ -216,14 +227,25 @@ namespace Spp
       });
     }
 
-    public override string ToString()
+    public void Loop(CodeChunk loop, Position position)
     {
-      var b = new StringBuilder("\n");
+      Emit(new Instruction.Loop(
+        loop, position
+      ));
+    }
 
-      foreach (var i in Instructions)
-        b.AppendLine(i.ToString());
+    public void Break(Position position)
+    {
+      Emit(new Instruction.Break(
+        position
+      ));
+    }
 
-      return b.ToString();
+    public void Declare(bool mutable, string value, CodeChunk type, Position position)
+    {
+      Emit(new Instruction.Declare(
+        mutable, value, type, position
+      ));
     }
   }
 
@@ -238,6 +260,7 @@ namespace Spp
         get
         {
           var s = Immediate.ToString();
+
           if (s is null)
             return "";
 
@@ -472,6 +495,63 @@ namespace Spp
       public override string ToString()
       {
         return $"Selection then {{{Then}}} otherwise {{{Otherwise}}}";
+      }
+    }
+
+    public struct Loop : Instruction
+    {
+      public CodeChunk Body { get; init; }
+
+      public Position Position { get; init; }
+
+      public Loop(CodeChunk body, Position position)
+      {
+        Body = body;
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return $"Loop {{{Body}}}";
+      }
+    }
+
+    public struct Break : Instruction
+    {
+      public Position Position { get; init; }
+
+      public Break(Position position)
+      {
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Break";
+      }
+    }
+
+    public struct Declare : Instruction
+    {
+      public bool Mutable { get; init; }
+
+      public string Name { get; init; }
+
+      public CodeChunk TypeExpression { get; init; }
+
+      public Position Position { get; init; }
+
+      public Declare(bool mutable, string name, CodeChunk typeExpression, Position position)
+      {
+        Mutable = mutable;
+        Name = name;
+        TypeExpression = typeExpression;
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return $"Declare Mutable: {Mutable}, Name: \"{Name}\", TypeExpression: {{{TypeExpression}}}";
       }
     }
 

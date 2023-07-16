@@ -16,4 +16,7 @@ fn foo(a: bool, b: bool):
     sum(sub(1, 2), 3, )
   else:
     std.io.println('inside else!')
-    
+
+fn bar(a: bool):
+  let x: bool = a
+  let mut y = a

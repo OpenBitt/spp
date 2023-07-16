@@ -200,10 +200,13 @@ namespace Spp
       ParseRealExpression(expression);
     }
 
-    void ParseTypeNotation(CodeChunk type)
+    bool ParseTypeNotation(CodeChunk type)
     {
-      ExpectToken(TokenKind.Colon, TokenMode.OnTheSameLine);
+      if (!MatchAdvance(TokenKind.Colon, TokenMode.OnTheSameLine))
+        return false;
+      
       ParseExpression(type, TokenMode.OnTheSameLine);
+      return true;
     }
 
     VarDefinition ParseFnParameterDefinition()
@@ -287,12 +290,56 @@ namespace Spp
           ParseIfStatement(body);
           break;
         
+        case TokenKind.While:
+          ParseWhileStatement(body);
+          break;
+        
+        case TokenKind.Let:
+          ParseLetStatement(body);
+          break;
+        
         default:
           var position = lexer.Current.Position;
           ParseExpression(body, TokenMode.OnNewLine);
           body.Pop(position);
           break;
       }
+    }
+
+    void ParseLetStatement(CodeChunk body)
+    {
+      // skipping "let"
+      EatToken();
+      
+      var mutable = MatchAdvance(TokenKind.Mut, TokenMode.OnTheSameLine);
+      var type = new CodeChunk();
+      var nameToken = ExpectToken(TokenKind.Identifier, TokenMode.OnTheSameLine);
+      var hasTypeNotation = ParseTypeNotation(type);
+
+      ExpectToken(TokenKind.Eq, TokenMode.OnTheSameLine);
+      ParseExpression(body, TokenMode.NoMatter);
+
+      body.Declare(mutable, nameToken.Value, type, nameToken.Position);
+    }
+
+    void ParseWhileStatement(CodeChunk body)
+    {
+      var loop = new CodeChunk();
+      var loopRealBody = new CodeChunk();
+      var loopBreakBody = new CodeChunk();
+
+      var position = EatToken().Position;
+      ParseExpression(loop, TokenMode.NoMatter);
+      loop.Selection(
+        loopRealBody,
+        loopBreakBody,
+        position
+      );
+
+      ParseBlock(loopRealBody);
+
+      loopBreakBody.Break(position);
+      body.Loop(loop, position);
     }
 
     void ParseIfStatement(CodeChunk body)
