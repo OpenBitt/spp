@@ -8,6 +8,8 @@ namespace Spp
     public Position Position { get; init; }
 
     public string Name { get; init; }
+
+    public string ToString();
   }
 
   public struct VarDefinition : IDefinition
@@ -23,6 +25,11 @@ namespace Spp
       Position = position;
       Name = name;
       TypeExpression = new();
+    }
+
+    public override string ToString()
+    {
+      return $"TypeExpression: {{{TypeExpression.ToString()}}}";
     }
   }
 
@@ -49,7 +56,12 @@ namespace Spp
 
     public override string ToString()
     {
-      return Body.ToString();
+      var parameters = new StringBuilder("\n");
+
+      foreach (var parameter in Parameters)
+        parameters.AppendLine($"\"{parameter.Key}\" -> {parameter.Value},");
+
+      return $"Parameters: {{{parameters}}}, ReturnTypeExpression: {{{ReturnTypeExpression}}}, Body: {{{Body}}}";
     }
   }
 
@@ -78,12 +90,13 @@ namespace Spp
 
       foreach (var toplevel in TopLevels)
       {
-        b.AppendLine($"{toplevel.Key} {{{toplevel.Value}}}");
+        b.AppendLine($"\"{toplevel.Key}\" -> {toplevel.Value}");
         b.AppendLine();
       }
 
       b.AppendLine("}");
 
+      // reformatting the string representation (with indents)
       var lines = b.ToString().Split('\n');
       var formatted = new StringBuilder();
       var indent = 0;
@@ -221,6 +234,23 @@ namespace Spp
       public object Immediate { get; init; }
       public Position Position { get; init; }
 
+      public string ImmediateRepr {
+        get
+        {
+          var s = Immediate.ToString();
+          if (s is null)
+            return "";
+
+          return
+            s
+            .Replace("\n", "\\n")
+            .Replace("\r", "\\r")
+            .Replace("\t", "\\t")
+            .Replace("\v", "\\v")
+            .Replace("\0", "\\0");
+        }
+      }
+
       public LoadImmediate(object immediate, Position position)
       {
         Immediate = immediate;
@@ -231,8 +261,8 @@ namespace Spp
       {
         return Immediate switch
         {
-          string => $"LoadImmediate \"{Immediate}\"",
-          char => $"LoadImmediate '{Immediate}'",
+          string => $"LoadImmediate \"{ImmediateRepr}\"",
+          char => $"LoadImmediate '{ImmediateRepr}'",
           _ => $"LoadImmediate {Immediate}",
         };
       }
