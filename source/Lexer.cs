@@ -27,7 +27,10 @@ namespace Spp
     Reminder,
     Return,
     Dot,
-    String
+    String,
+    If,
+    Else,
+    Elif
   }
 
   public enum TokenMode
@@ -72,6 +75,9 @@ namespace Spp
       ["fn"] = TokenKind.Fn,
       ["pass"] = TokenKind.Pass,
       ["return"] = TokenKind.Return,
+      ["if"] = TokenKind.If,
+      ["elif"] = TokenKind.Elif,
+      ["else"] = TokenKind.Else,
     };
 
     readonly Dictionary<string, TokenKind> DOUBLE_PUNCTUATIONS = new()

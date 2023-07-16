@@ -4,10 +4,16 @@ fn sum(a: i32, b: i32) -> i32:
 fn sub(a: i32, b: i32) -> i32:
   return a - b
 
-fn main():
-  std.io.println(
-    sum(
-      sub(1, 2, ),
-      3
-    )
-  )
+fn do_something():
+  pass
+
+fn foo(a: bool, b: bool):
+  if a:
+    std.io.println('inside if!')
+    do_something()
+  elif b:
+    std.io.println('inside elif!')
+    sum(sub(1, 2), 3, )
+  else:
+    std.io.println('inside else!')
+    

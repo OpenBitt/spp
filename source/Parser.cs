@@ -283,12 +283,34 @@ namespace Spp
           ParseReturnStatement(body);
           break;
         
+        case TokenKind.If:
+          ParseIfStatement(body);
+          break;
+        
         default:
           var position = lexer.Current.Position;
           ParseExpression(body, TokenMode.OnNewLine);
           body.Pop(position);
           break;
       }
+    }
+
+    void ParseIfStatement(CodeChunk body)
+    {
+      var position = EatToken().Position;
+      ParseExpression(body, TokenMode.NoMatter);
+
+      var then = new CodeChunk();
+      var otherwise = new CodeChunk();
+
+      ParseBlock(then);
+
+      if (MatchNoAdvance(TokenKind.Elif, TokenMode.OnNewLine))
+        ParseIfStatement(otherwise);
+      else if (MatchAdvance(TokenKind.Else, TokenMode.OnNewLine))
+        ParseBlock(otherwise);
+
+      body.Selection(then, otherwise, position);
     }
 
     bool HasExpression()
