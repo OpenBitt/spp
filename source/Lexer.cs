@@ -60,7 +60,8 @@ namespace Spp
 
     public override string ToString()
     {
-      return $"Token(Kind: {Kind}, Value: \"{Value}\", Indent: {Indent}, Position: {Position})";
+      return
+        $"Token(Kind: {Kind}, Value: \"{Value}\", Indent: {Indent}, Mode: {Mode}, Position: {Position})";
     }
   }
 

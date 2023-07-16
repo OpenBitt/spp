@@ -145,7 +145,7 @@ namespace Spp
         switch (lexer.Previous.Kind)
         {
           case TokenKind.LPar:
-            ParseFunctionCall(expression, lexer.Previous.Position);
+            ParseCall(expression, lexer.Previous.Position);
             break;
           
           case TokenKind.Dot:
@@ -163,23 +163,21 @@ namespace Spp
       expression.LoadAttribute(attribute.Value, attribute.Position);
     }
 
-    void ParseFunctionCall(CodeChunk expression, Position position)
+    void ParseCall(CodeChunk expression, Position position)
     {
-      if (MatchAdvance(TokenKind.RPar, TokenMode.NoMatter))
-      {
-        expression.Call(0, position);
-        return;
-      }
-
       var argumentsCount = 0;
 
       do
       {
+        if (MatchNoAdvance(TokenKind.RPar, TokenMode.NoMatter))
+          break;
+
         ParseExpression(expression, TokenMode.NoMatter);
         argumentsCount++;
       }
-      while (MatchAdvance(TokenKind.Comma, TokenMode.OnTheSameLine));
+      while (MatchAdvance(TokenKind.Comma, TokenMode.NoMatter));
 
+      ExpectToken(TokenKind.RPar, TokenMode.NoMatter);
       expression.Call(argumentsCount, position);
     }
 
@@ -251,13 +249,14 @@ namespace Spp
     {
       ExpectToken(TokenKind.LPar, TokenMode.OnTheSameLine);
 
-      // the function might have 0 arguments
-      if (MatchAdvance(TokenKind.RPar, TokenMode.NoMatter))
-        return;
-      
       do
+      {
+        if (MatchNoAdvance(TokenKind.RPar, TokenMode.NoMatter))
+          break;
+        
         AddParameter(ref definition, ParseFnParameterDefinition());
-      while (MatchAdvance(TokenKind.Comma, TokenMode.OnTheSameLine));
+      }
+      while (MatchAdvance(TokenKind.Comma, TokenMode.NoMatter));
 
       ExpectToken(TokenKind.RPar, TokenMode.NoMatter);
     }
