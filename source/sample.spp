@@ -1,2 +1,8 @@
-fn add(a: i32, b: i32) -> i32:
+fn sum(a: i32, b: i32) -> i32:
   return a + b
+
+fn sub(a: i32, b: i32) -> i32:
+  return a - b
+
+fn main():
+  std.io.println('Hello world!')

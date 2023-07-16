@@ -25,7 +25,9 @@ namespace Spp
     Star,
     Slash,
     Reminder,
-    Return
+    Return,
+    Dot,
+    String
   }
 
   public enum TokenMode
@@ -92,6 +94,7 @@ namespace Spp
       ['*'] = TokenKind.Star,
       ['/'] = TokenKind.Slash,
       ['%'] = TokenKind.Reminder,
+      ['.'] = TokenKind.Dot,
     };
 
     public Token Previous { get; private set; }
@@ -130,15 +133,26 @@ namespace Spp
 
     public bool HasNextToken => Next.Kind != TokenKind.Eof;
 
-    bool HasChar => index < code.Length;
+    bool HasPreviousChar => HasCharOffset(-1);
+    char PreviousChar => CharOffset(-1);
 
-    char CurrentChar => code[index];
+    bool HasChar => HasCharOffset(0);
+    char CurrentChar => CharOffset(0);
 
-    bool HasNextChar => index + 1 < code.Length;
-
-    char NextChar => code[index + 1];
+    bool HasNextChar => HasCharOffset(+1);
+    char NextChar => CharOffset(+1);
 
     Position CurrentPosition => new(filename, new(row + 1, index - indexOfLineStart + 1));
+
+    bool HasCharOffset(int offset)
+    {
+      return index + offset < code.Length;
+    }
+
+    char CharOffset(int offset)
+    {
+      return code[index + offset];
+    }
 
     TokenMode ConsumeTokenMode()
     {
@@ -301,6 +315,11 @@ namespace Spp
       return new(kind, value, indent, mode, position);
     }
 
+    bool MatchStringChar()
+    {
+      return CurrentChar == '\'';
+    }
+
     Token Tokenize()
     {
       EatWhite();
@@ -314,11 +333,43 @@ namespace Spp
 
       if (MatchWordChar())
         token = CollectWordToken();
+      else if (MatchStringChar())
+        token = CollectStringToken();
       else
         token = CollectPunctuationTokenOrBad();
       
       Advance();
       return token;
+    }
+
+    Token CollectStringToken()
+    {
+      // skipping '
+      Advance();
+
+      var position = CurrentPosition;
+      var length = 0;
+      var startingIndex = index;
+      var mode = ConsumeTokenMode();
+      var indent = ConsumeIndent(mode, position);
+
+      while (HasChar && !MatchStringChar())
+      {
+        Advance();
+        length++;
+      }
+
+      var value = new string(
+        code.ToCharArray(),
+        startingIndex,
+        length
+      );
+
+      return new(
+        TokenKind.String,
+        value, indent,
+        mode, position
+      );
     }
 
     public Token NextToken()

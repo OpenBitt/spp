@@ -126,12 +126,61 @@ namespace Spp
           expression.LoadImmediate(lexer.ParseNumberToken(current), current.Position);
           break;
 
+        case TokenKind.String:
+          expression.LoadImmediate(current.Value, current.Position);
+          break;
+
         default:
           report.AddDiagnostic(ReportHelper.BadExpressionSyntax(
             current.Kind, current.Position
           ));
           return;
       }
+
+      // matching operators (such as call, index, dot, ..)
+      while (MatchAdvanceMultiple(
+        new[] { TokenKind.LPar, TokenKind.Dot },
+        TokenMode.OnTheSameLine
+      ))
+        switch (lexer.Previous.Kind)
+        {
+          case TokenKind.LPar:
+            ParseFunctionCall(expression, lexer.Previous.Position);
+            break;
+          
+          case TokenKind.Dot:
+            ParseDot(expression);
+            break;
+          
+          default:
+            throw new NotImplementedException();
+        };
+    }
+
+    void ParseDot(CodeChunk expression)
+    {
+      var attribute = ExpectToken(TokenKind.Identifier, TokenMode.NoMatter);
+      expression.LoadAttribute(attribute.Value, attribute.Position);
+    }
+
+    void ParseFunctionCall(CodeChunk expression, Position position)
+    {
+      if (MatchAdvance(TokenKind.RPar, TokenMode.NoMatter))
+      {
+        expression.Call(0, position);
+        return;
+      }
+
+      var argumentsCount = 0;
+
+      do
+      {
+        ParseExpression(expression, TokenMode.NoMatter);
+        argumentsCount++;
+      }
+      while (MatchAdvance(TokenKind.Comma, TokenMode.OnTheSameLine));
+
+      expression.Call(argumentsCount, position);
     }
 
     void ParseRealExpression(CodeChunk expression)
@@ -225,8 +274,7 @@ namespace Spp
 
     void ParseStatement(CodeChunk body)
     {
-      var current = EatToken();
-      switch (current.Kind)
+      switch (lexer.Current.Kind)
       {
         case TokenKind.Pass:
           ParsePassStatement(body);
@@ -237,10 +285,10 @@ namespace Spp
           break;
         
         default:
-          report.AddDiagnostic(ReportHelper.BadStatementSyntax(
-            current.Kind, current.Position
-          ));
-          return;
+          var position = lexer.Current.Position;
+          ParseExpression(body, TokenMode.OnNewLine);
+          body.Pop(position);
+          break;
       }
     }
 
@@ -253,7 +301,7 @@ namespace Spp
 
     void ParseReturnStatement(CodeChunk body)
     {
-      var position = lexer.Previous.Position;
+      var position = EatToken().Position;
 
       if (!HasExpression())
       {
@@ -267,7 +315,7 @@ namespace Spp
 
     void ParsePassStatement(CodeChunk body)
     {
-      body.Nop(lexer.Previous.Position);
+      body.Nop(EatToken().Position);
     }
 
     void ParseBlock(CodeChunk body)

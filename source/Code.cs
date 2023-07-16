@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Text;
 
 namespace Spp
 {
@@ -45,6 +46,11 @@ namespace Spp
       Body = new();
       ReturnTypeExpression = new();
     }
+
+    public override string ToString()
+    {
+      return Body.ToString();
+    }
   }
 
   public class MiddleRepresentation
@@ -56,9 +62,20 @@ namespace Spp
       TopLevels = new();
     }
 
-    public override string ToString()
+    public string ToJSON()
     {
       return JsonConvert.SerializeObject(this, Formatting.Indented);
+    }
+
+    public override string ToString()
+    {
+      var b = new StringBuilder("TopLevels {\n");
+
+      foreach (var toplevel in TopLevels)
+        b.AppendLine($"  {toplevel.Key} {{\n{toplevel.Value}  }}\n");
+
+      b.AppendLine("}");
+      return b.ToString();
     }
   }
 
@@ -120,6 +137,27 @@ namespace Spp
       ));
     }
 
+    public void Pop(Position position)
+    {
+      Emit(new Instruction.Pop(
+        position
+      ));
+    }
+
+    public void Call(int argumentsCount, Position position)
+    {
+      Emit(new Instruction.Call(
+        argumentsCount, position
+      ));
+    }
+
+    public void LoadAttribute(string name, Position position)
+    {
+      Emit(new Instruction.LoadAttribute(
+        name, position
+      ));
+    }
+
     public void BinaryOp(TokenKind op, Position position)
     {
       Emit(op switch
@@ -131,6 +169,16 @@ namespace Spp
         TokenKind.Reminder => new Instruction.Rem(position),
         _ => throw new ArgumentException()
       });
+    }
+
+    public override string ToString()
+    {
+      var b = new StringBuilder();
+
+      foreach (var i in Instructions)
+        b.AppendLine($"    {i}");
+
+      return b.ToString();
     }
   }
 
@@ -146,6 +194,16 @@ namespace Spp
         Immediate = immediate;
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return Immediate switch
+        {
+          string => $"LoadImmediate \"{Immediate}\"",
+          char => $"LoadImmediate '{Immediate}'",
+          _ => $"LoadImmediate {Immediate}",
+        };
+      }
     }
 
     public struct LoadName : Instruction
@@ -158,6 +216,11 @@ namespace Spp
         Name = name;
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return $"LoadName \"{Name}\"";
+      }
     }
 
     public struct Nop : Instruction
@@ -167,6 +230,11 @@ namespace Spp
       public Nop(Position position)
       {
         Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Nop";
       }
     }
 
@@ -178,6 +246,11 @@ namespace Spp
       {
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return "Sum";
+      }
     }
 
     public struct Sub : Instruction
@@ -187,6 +260,11 @@ namespace Spp
       public Sub(Position position)
       {
         Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Sub";
       }
     }
 
@@ -198,6 +276,11 @@ namespace Spp
       {
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return "Mul";
+      }
     }
 
     public struct Div : Instruction
@@ -207,6 +290,11 @@ namespace Spp
       public Div(Position position)
       {
         Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Div";
       }
     }
 
@@ -218,6 +306,11 @@ namespace Spp
       {
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return "Rem";
+      }
     }
 
     public struct Ret : Instruction
@@ -227,6 +320,11 @@ namespace Spp
       public Ret(Position position)
       {
         Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Ret";
       }
     }
 
@@ -238,8 +336,64 @@ namespace Spp
       {
         Position = position;
       }
+
+      public override string ToString()
+      {
+        return "RetVoid";
+      }
+    }
+
+    public struct Pop : Instruction
+    {
+      public Position Position { get; init; }
+
+      public Pop(Position position)
+      {
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return "Pop";
+      }
+    }
+
+    public struct Call : Instruction
+    {
+      public int ArgumentsCount { get; init; }
+      public Position Position { get; init; }
+
+      public Call(int argumentsCount, Position position)
+      {
+        ArgumentsCount = argumentsCount;
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return $"Call {ArgumentsCount}";
+      }
+    }
+
+    public struct LoadAttribute : Instruction
+    {
+      public string Name { get; init; }
+      public Position Position { get; init; }
+
+      public LoadAttribute(string name, Position position)
+      {
+        Name = name;
+        Position = position;
+      }
+
+      public override string ToString()
+      {
+        return $"LoadAttribute \"{Name}\"";
+      }
     }
 
     public Position Position { get; init; }
+
+    public string ToString();
   }
 }

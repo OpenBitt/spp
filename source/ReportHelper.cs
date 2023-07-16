@@ -115,25 +115,6 @@ namespace Spp
           $"Expected indentation of {expectedIndent} spaces, got {actualIndent} spaces"
         ));
     
-    public static Diagnostic BadStatementSyntax(TokenKind kind, Position position) =>
-      Diagnostic
-        .Error("Bad statement syntax")
-        .WithCode("SPP9")
-        .WithNote(
-@"A statement must be either a:
-      * Control flow statement (`return`, `break` ..)
-      * Assignment statement
-      * Selection statement (`if`, `while` ..)
-      .
-      .
-      * Variable/Function/Implementation definition
-")
-        .WithLabel(new(
-          position.Filename,
-          position.Location,
-          $"Expected statement, got token \"{kind}\""
-        ));
-    
     public static Diagnostic BadExpressionSyntax(TokenKind kind, Position position) =>
       Diagnostic
         .Error("Bad expression syntax")
