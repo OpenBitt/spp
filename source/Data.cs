@@ -141,11 +141,6 @@ namespace Spp
       };
     }
 
-    string ProduceIndent(int indent)
-    {
-      return new string(' ', indent);
-    }
-
     public string ToJSON()
     {
       return JsonConvert.SerializeObject(this, Formatting.Indented);
@@ -167,17 +162,16 @@ namespace Spp
       var lines = b.ToString().Split('\n');
       var formatted = new StringBuilder();
       var indent = 0;
-      const int INDENT_STEP = 2;
 
       foreach (var line in lines)
       {
         if (line.StartsWith("}"))
-          indent -= INDENT_STEP;
+          indent -= Helper.INDENT_STEP;
 
-        formatted.AppendLine($"{ProduceIndent(indent)}{line}");
+        formatted.AppendLine($"{Helper.ProduceIndent(indent)}{line}");
         
         if (line.EndsWith("{"))
-          indent += INDENT_STEP;
+          indent += Helper.INDENT_STEP;
       }
       
       return formatted.ToString();
@@ -325,24 +319,6 @@ namespace Spp
       public object Immediate { get; init; }
       public Position Position { get; init; }
 
-      public string ImmediateRepr {
-        get
-        {
-          var s = Immediate.ToString();
-
-          if (s is null)
-            return "";
-
-          return
-            s
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("\t", "\\t")
-            .Replace("\v", "\\v")
-            .Replace("\0", "\\0");
-        }
-      }
-
       public LoadImmediate(object immediate, Position position)
       {
         Immediate = immediate;
@@ -351,12 +327,7 @@ namespace Spp
 
       public override string ToString()
       {
-        return Immediate switch
-        {
-          string => $"LoadImmediate \"{ImmediateRepr}\"",
-          char => $"LoadImmediate '{ImmediateRepr}'",
-          _ => $"LoadImmediate {Immediate}",
-        };
+        return Helper.ToRepresentationString(Immediate);
       }
     }
 

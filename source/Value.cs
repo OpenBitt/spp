@@ -32,13 +32,13 @@ namespace Spp
       }
     }
 
-    public struct FnType : IType
+    public struct Fn : IType
     {
       public IType[] ParameterTypes { get; init; }
 
       public IType ReturnType { get; init; }
 
-      public FnType(IType[] parameterTypes, IType returnType)
+      public Fn(IType[] parameterTypes, IType returnType)
       {
         ParameterTypes = parameterTypes;
         ReturnType = returnType;
@@ -51,7 +51,7 @@ namespace Spp
         if (other is Poisoned)
           return true;
 
-        if (other is not FnType otherType)
+        if (other is not Fn otherType)
           return false;
         
         if (ParameterTypes.Length != otherType.ParameterTypes.Length)
@@ -125,6 +125,11 @@ namespace Spp
         Type = type;
         Position = position;
       }
+
+      public string Cpp(string type)
+      {
+        return $"({type})({Helper.ToRepresentationString(Value)})";
+      }
     }
 
     public struct Poisoned : IValue
@@ -137,8 +142,16 @@ namespace Spp
         Type = type;
         Position = position;
       }
+
+      public string Cpp(string type)
+      {
+        return "<?>";
+      }
     }
 
+
+    public string Cpp(string type);
+    
     public IType Type { get; init; }
 
     public Position Position { get; init; }

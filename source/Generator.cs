@@ -10,7 +10,7 @@ namespace Spp
 
     readonly Emitter emitter;
 
-    readonly Stack<(IDefinition.Fn Definition, IType.FnType Type)> fnDefinitions;
+    readonly Stack<(IDefinition.Fn Definition, IType.Fn Type)> fnInProgress;
 
     readonly Stack<IValue> virtualStack;
 
@@ -22,14 +22,14 @@ namespace Spp
       this.representation = representation;
 
       emitter = new();
-      fnDefinitions = new();
+      fnInProgress = new();
       virtualStack = new();
       memories = new();
     }
 
-    IDefinition.Fn CurrentFn => fnDefinitions.Peek().Definition;
+    IDefinition.Fn CurrentFn => fnInProgress.Peek().Definition;
 
-    IType.FnType CurrentFnType => fnDefinitions.Peek().Type;
+    IType.Fn CurrentFnType => fnInProgress.Peek().Type;
 
     Dictionary<string, IDefinition> Memory => memories.Peek();
 
@@ -70,21 +70,23 @@ namespace Spp
     void ProcessFnDefinition(IDefinition.Fn definition)
     {
       PushMemory();
-      PushFnDefinition(definition);
-        ProcessBlock(CurrentFn.Body);
-      PopFnDefinition();
+        PushFnDefinition(definition);
+          emitter.PushFn(CurrentFn.Name, CurrentFnType);
+            ProcessBlock(CurrentFn.Body);
+          emitter.PopFn();
+        PopFnDefinition();
       PopMemory();
     }
 
     void PopFnDefinition()
     {
-      fnDefinitions.Pop();
+      fnInProgress.Pop();
     }
 
     void PushFnDefinition(IDefinition.Fn definition)
     {
-      var type = (IType.FnType)GetDefinitionType(definition);
-      fnDefinitions.Push((definition, type));
+      var type = (IType.Fn)GetDefinitionType(definition);
+      fnInProgress.Push((definition, type));
     }
 
     IType GetDefinitionType(IDefinition definition)
@@ -215,7 +217,7 @@ namespace Spp
       
       var returnType = MetaProcessBlockAndGetType(returnTypeExpression);
 
-      return new IType.FnType(
+      return new IType.Fn(
         parameterTypes, returnType
       );
     }
@@ -223,33 +225,30 @@ namespace Spp
     void ProcessBlock(CodeChunk block)
     {
       foreach (var instruction in block.Instructions)
-        ProcessInstruction(instruction);
-    }
-
-    void ProcessInstruction(Instruction instruction)
-    {
-      switch (instruction)
-      {
-        case Instruction.RetVoid i:
-          CheckFnReturnType(new IType.Void(), i.Position);
-          break;
-        
-        case Instruction.LoadImmediate i:
-          VirtualLoad(new IValue.Static(
-            i.Immediate,
-            GetImmediateType(i.Immediate),
-            i.Position
-          ));
-          break;
-        
-        case Instruction.Ret i:
-          var value = VirtualPop();
-          CheckFnReturnType(value.Type, value.Position);
-          break;
-        
-        default:
-          throw new NotImplementedException();
-      }
+        switch (instruction)
+        {
+          case Instruction.RetVoid i:
+            CheckFnReturnType(new IType.Void(), i.Position);
+            emitter.RetVoid();
+            break;
+          
+          case Instruction.LoadImmediate i:
+            VirtualLoad(new IValue.Static(
+              i.Immediate,
+              GetImmediateType(i.Immediate),
+              i.Position
+            ));
+            break;
+          
+          case Instruction.Ret i:
+            var value = VirtualPop();
+            CheckFnReturnType(value.Type, value.Position);
+            emitter.Ret(value);
+            break;
+          
+          default:
+            throw new NotImplementedException();
+        }
     }
 
     IType GetImmediateType(object immediate)
