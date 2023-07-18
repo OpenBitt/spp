@@ -1,2 +1,2 @@
-fn main():
-  return
+fn main() -> int:
+  return 0

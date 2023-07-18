@@ -137,6 +137,7 @@ namespace Spp
       TopLevels = new Dictionary<string, IDefinition>()
       {
         ["void"] = new IDefinition.Static(position, "void", new IType.Type(), new IType.Void()),
+        ["int"] = new IDefinition.Static(position, "int", new IType.Type(), new IType.Int()),
       };
     }
 

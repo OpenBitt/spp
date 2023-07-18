@@ -17,6 +17,21 @@ namespace Spp
       }
     }
 
+    public struct Int : IType
+    {
+      public int BitSize => IntPtr.Size * 8;
+
+      public bool Equals(IType? other)
+      {
+        return other is Poisoned or Int;
+      }
+
+      public override string ToString()
+      {
+        return "int";
+      }
+    }
+
     public struct FnType : IType
     {
       public IType[] ParameterTypes { get; init; }

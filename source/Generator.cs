@@ -234,9 +234,31 @@ namespace Spp
           CheckFnReturnType(new IType.Void(), i.Position);
           break;
         
+        case Instruction.LoadImmediate i:
+          VirtualLoad(new IValue.Static(
+            i.Immediate,
+            GetImmediateType(i.Immediate),
+            i.Position
+          ));
+          break;
+        
+        case Instruction.Ret i:
+          var value = VirtualPop();
+          CheckFnReturnType(value.Type, value.Position);
+          break;
+        
         default:
           throw new NotImplementedException();
       }
+    }
+
+    IType GetImmediateType(object immediate)
+    {
+      return immediate switch
+      {
+        ulong => new IType.Int(),
+        _ => throw new NotImplementedException()
+      };
     }
 
     void CheckTypes(IType expected, IType actual, Position position)
