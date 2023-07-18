@@ -5,6 +5,122 @@ namespace Spp
 {
   public interface IDefinition
   {
+    public struct Var : IDefinition
+    {
+      public Position Position { get; init; }
+
+      public string Name { get; init; }
+
+      public CodeChunk TypeExpression { get; init; }
+
+      public IType? Type { get; set; }
+
+      public bool HasStaticValue => false;
+
+      public Var(Position position, string name)
+      {
+        Position = position;
+        Name = name;
+        TypeExpression = new();
+        Type = null;
+      }
+
+      public override string ToString()
+      {
+        return $"TypeExpression: {{{TypeExpression.ToString()}}}";
+      }
+    }
+
+    public struct Fn : IDefinition
+    {
+      public Position Position { get; init; }
+
+      public string Name { get; init; }
+
+      public Dictionary<string, Var> Parameters { get; init; }
+
+      public CodeChunk ReturnTypeExpression { get; init; }
+
+      public CodeChunk Body { get; init; }
+
+      public IType? Type { get; set; }
+
+      public bool HasStaticValue => true;
+
+      public Fn(Position position, string name)
+      {
+        Position = position;
+        Name = name;
+        Parameters = new();
+        Body = new();
+        ReturnTypeExpression = new();
+        Type = null;
+      }
+
+      public override string ToString()
+      {
+        var parameters = new StringBuilder("\n");
+
+        foreach (var parameter in Parameters)
+          parameters.AppendLine($"\"{parameter.Key}\" -> {parameter.Value},");
+
+        return $"Parameters: {{{parameters}}}, ReturnTypeExpression: {{{ReturnTypeExpression}}}, Body: {{{Body}}}";
+      }
+    }
+
+    public struct Poisoned : IDefinition
+    {
+      public Position Position { get; init; }
+
+      public string Name { get; init; }
+
+      public IType? Type { get; set; }
+
+      public bool HasStaticValue => false;
+
+      public Poisoned(Position position, string name)
+      {
+        Position = position;
+        Name = name;
+        Type = new IType.Poisoned();
+      }
+
+      public override string ToString()
+      {
+        return $"Poisoned({Type})";
+      }
+    }
+
+    public struct Static : IDefinition
+    {
+      public Position Position { get; init; }
+
+      public string Name { get; init; }
+
+      public IType? Type { get; set; }
+
+      public object Value { get; set; }
+
+      public bool HasStaticValue => true;
+
+      public Static(Position position, string name, IType type, object value)
+      {
+        Position = position;
+        Name = name;
+        Type = type;
+        Value = value;
+      }
+
+      public override string ToString()
+      {
+        return $"Static({Type} {Value})";
+      }
+    }
+
+    public bool HasStaticValue { get; }
+
+    public IType? Type { get; set; }
+
     public Position Position { get; init; }
 
     public string Name { get; init; }
@@ -12,66 +128,16 @@ namespace Spp
     public string ToString();
   }
 
-  public struct VarDefinition : IDefinition
-  {
-    public Position Position { get; init; }
-
-    public string Name { get; init; }
-
-    public CodeChunk TypeExpression { get; init; }
-
-    public VarDefinition(Position position, string name)
-    {
-      Position = position;
-      Name = name;
-      TypeExpression = new();
-    }
-
-    public override string ToString()
-    {
-      return $"TypeExpression: {{{TypeExpression.ToString()}}}";
-    }
-  }
-
-  public struct FnDefinition : IDefinition
-  {
-    public Position Position { get; init; }
-
-    public string Name { get; init; }
-
-    public Dictionary<string, VarDefinition> Parameters { get; init; }
-
-    public CodeChunk ReturnTypeExpression { get; init; }
-
-    public CodeChunk Body { get; init; }
-
-    public FnDefinition(Position position, string name)
-    {
-      Position = position;
-      Name = name;
-      Parameters = new();
-      Body = new();
-      ReturnTypeExpression = new();
-    }
-
-    public override string ToString()
-    {
-      var parameters = new StringBuilder("\n");
-
-      foreach (var parameter in Parameters)
-        parameters.AppendLine($"\"{parameter.Key}\" -> {parameter.Value},");
-
-      return $"Parameters: {{{parameters}}}, ReturnTypeExpression: {{{ReturnTypeExpression}}}, Body: {{{Body}}}";
-    }
-  }
-
   public class MiddleRepresentation
   {
     public Dictionary<string, IDefinition> TopLevels { get; init; }
 
-    public MiddleRepresentation()
+    public MiddleRepresentation(Position position)
     {
-      TopLevels = new();
+      TopLevels = new Dictionary<string, IDefinition>()
+      {
+        ["void"] = new IDefinition.Static(position, "void", new IType.Type(), new IType.Void()),
+      };
     }
 
     string ProduceIndent(int indent)
@@ -158,6 +224,8 @@ namespace Spp
     }
 
     public void LoadImmediate(ulong immediate, Position position) => LoadImmediate((object)immediate, position);
+
+    public void LoadImmediate(bool immediate, Position position) => LoadImmediate((object)immediate, position);
 
     public void LoadImmediate(string immediate, Position position) => LoadImmediate((object)immediate, position);
 

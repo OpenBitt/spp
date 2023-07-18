@@ -34,7 +34,8 @@ namespace Spp
     While,
     Let,
     Mut,
-    Eq
+    Eq,
+    Bool
   }
 
   public enum TokenMode
@@ -85,6 +86,8 @@ namespace Spp
       ["while"] = TokenKind.While,
       ["let"] = TokenKind.Let,
       ["mut"] = TokenKind.Mut,
+      ["true"] = TokenKind.Bool,
+      ["false"] = TokenKind.Bool,
     };
 
     readonly Dictionary<string, TokenKind> DOUBLE_PUNCTUATIONS = new()
@@ -158,6 +161,8 @@ namespace Spp
     char NextChar => CharOffset(+1);
 
     Position CurrentPosition => new(filename, new(row + 1, index - indexOfLineStart + 1));
+
+    public Dictionary<string, TokenKind> KEYWORDS1 => KEYWORDS;
 
     bool HasCharOffset(int offset)
     {
@@ -241,7 +246,7 @@ namespace Spp
 
     void IsKeywordToken(string identifier, ref TokenKind kind)
     {
-      foreach (var kw in KEYWORDS)
+      foreach (var kw in KEYWORDS1)
         if (kw.Key == identifier)
         {
           kind = kw.Value;
@@ -405,6 +410,11 @@ namespace Spp
         token.Value, token.Position
       ));
       return 0;
+    }
+
+    public bool ParseBoolToken(Token token)
+    {
+      return bool.Parse(token.Value);
     }
   }
 }

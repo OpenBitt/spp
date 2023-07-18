@@ -17,7 +17,7 @@ namespace Spp
       this.report = report;
 
       lexer = new(report, filename);
-      representation = new();
+      representation = new(new(filename, new(1, 1)));
       indent = 0;
     }
 
@@ -26,11 +26,11 @@ namespace Spp
       if (representation.TopLevels.TryAdd(name, definition))
         return;
       
-      report.AddDiagnostic(ReportHelper.TopLevelRedefinition(
+      report.AddDiagnostic(ReportHelper.MemberRedefinition(
         name, definition.Position
       ));
 
-      report.AddDiagnostic(ReportHelper.TopLevelRedefinitionInfo(
+      report.AddDiagnostic(ReportHelper.MemberRedefinitionInfo(
         representation.TopLevels[name].Position
       ));
     }
@@ -130,6 +130,10 @@ namespace Spp
           expression.LoadImmediate(current.Value, current.Position);
           break;
 
+        case TokenKind.Bool:
+          expression.LoadImmediate(lexer.ParseBoolToken(current), current.Position);
+          break;
+
         default:
           report.AddDiagnostic(ReportHelper.BadExpressionSyntax(
             current.Kind, current.Position
@@ -209,10 +213,10 @@ namespace Spp
       return true;
     }
 
-    VarDefinition ParseFnParameterDefinition()
+    IDefinition.Var ParseFnParameterDefinition()
     {
       var nameToken = ExpectToken(TokenKind.Identifier, TokenMode.NoMatter);
-      var definition = new VarDefinition(nameToken.Position, nameToken.Value);
+      var definition = new IDefinition.Var(nameToken.Position, nameToken.Value);
 
       ParseTypeNotation(definition.TypeExpression);
 
@@ -232,7 +236,10 @@ namespace Spp
       type.LoadName("void", fnPosition);
     }
 
-    void AddParameter(ref FnDefinition fnDefinition, VarDefinition parameterDefinition)
+    void AddParameter(
+      ref IDefinition.Fn fnDefinition,
+      IDefinition.Var parameterDefinition
+    )
     {
       var name = parameterDefinition.Name;
 
@@ -248,7 +255,7 @@ namespace Spp
       ));
     }
 
-    void ParseFnParametersList(ref FnDefinition definition)
+    void ParseFnParametersList(ref IDefinition.Fn definition)
     {
       ExpectToken(TokenKind.LPar, TokenMode.OnTheSameLine);
 
@@ -406,7 +413,7 @@ namespace Spp
       var nameToken = ExpectToken(TokenKind.Identifier, TokenMode.OnTheSameLine);
       name = nameToken.Value;
 
-      var fnDefinition = new FnDefinition(nameToken.Position, name);
+      var fnDefinition = new IDefinition.Fn(nameToken.Position, name);
       definition = fnDefinition;
       
       ParseFnParametersList(ref fnDefinition);

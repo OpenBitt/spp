@@ -1,22 +1,2 @@
-fn sum(a: i32, b: i32) -> i32:
-  return a + b
-
-fn sub(a: i32, b: i32) -> i32:
-  return a - b
-
-fn do_something():
-  pass
-
-fn foo(a: bool, b: bool):
-  if a:
-    std.io.println('inside if!')
-    do_something()
-  elif b:
-    std.io.println('inside elif!')
-    sum(sub(1, 2), 3, )
-  else:
-    std.io.println('inside else!')
-
-fn bar(a: bool):
-  let x: bool = a
-  let mut y = a
+fn main():
+  return
