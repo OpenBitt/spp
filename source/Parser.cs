@@ -27,10 +27,7 @@ namespace Spp
         return;
       
       report.AddDiagnostic(ReportHelper.MemberRedefinition(
-        name, definition.Position
-      ));
-
-      report.AddDiagnostic(ReportHelper.MemberRedefinitionInfo(
+        name, definition.Position,
         representation.TopLevels[name].Position
       ));
     }
@@ -247,10 +244,7 @@ namespace Spp
         return;
       
       report.AddDiagnostic(ReportHelper.ParameterRedefinition(
-        name, parameterDefinition.Position
-      ));
-
-      report.AddDiagnostic(ReportHelper.ParameterRedefinitionInfo(
+        name, parameterDefinition.Position,
         fnDefinition.Parameters[name].Position
       ));
     }

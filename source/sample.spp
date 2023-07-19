@@ -1,2 +1,8 @@
-fn main() -> void:
-  return 123
+fn foo(a: int, a: void) -> int:
+  return a
+
+fn foo() -> int:
+  return foo(2)
+
+fn main():
+  return

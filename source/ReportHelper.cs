@@ -55,15 +55,26 @@ namespace Spp
           $"expected a valid top level member definition, found token \"{kind}\""
         ));
 
-    public static Diagnostic MemberRedefinition(string name, Position position) =>
+    public static Diagnostic MemberRedefinition(string name, Position position, Position previousDefinitionPosition) =>
       Diagnostic
         .Error("Member redefinition")
         .WithCode("SPP4")
-        .WithLabel(new(
-          position.Filename,
-          position.Range,
-          $"member \"{name}\" is already defined, redefinition is not allowed"
-        ));
+        .WithLabel(
+          new Label(
+            position.Filename,
+            position.Range,
+            $"redefinition of member \"{name}\""
+          )
+          .WithColor(Color.Red)
+        )
+        .WithLabel(
+          new Label(
+            previousDefinitionPosition.Filename,
+            previousDefinitionPosition.Range,
+            $"member is shadowed by a new definition with the same name"
+          )
+          .WithColor(Color.Grey)
+        );
 
     public static Diagnostic ExpectedToken(
       TokenKind expectedKind,
@@ -79,15 +90,26 @@ namespace Spp
           $"expected token \"{expectedKind}\", got \"{actualKind}\""
         ));
     
-    public static Diagnostic ParameterRedefinition(string name, Position position) =>
+    public static Diagnostic ParameterRedefinition(string name, Position position, Position previousDefinitionPosition) =>
       Diagnostic
-        .Error("Redefinition of function parameter")
+        .Error("Redefinition of function's parameter")
         .WithCode("SPP6")
-        .WithLabel(new(
-          position.Filename,
-          position.Range,
-          $"parameter \"{name}\" is already defined, parameter redefinitions is not allowed"
-        ));
+        .WithLabel(
+          new Label(
+            position.Filename,
+            position.Range,
+            $"redefinition of parameter \"{name}\""
+          )
+          .WithColor(Color.Red)
+        )
+        .WithLabel(
+          new Label(
+            previousDefinitionPosition.Filename,
+            previousDefinitionPosition.Range,
+            $"parameter is shadowed"
+          )
+          .WithColor(Color.Grey)
+        );
     
     public static Diagnostic BadTokenMode(TokenMode expectedMode, Position position) =>
       Diagnostic
@@ -215,23 +237,5 @@ namespace Spp
           )
           .WithColor(Color.Red)
         );
-    
-    public static Diagnostic ParameterRedefinitionInfo(Position position) =>
-      Diagnostic
-        .Info("Parameter previously defined here")
-        .WithLabel(new(
-          position.Filename,
-          position.Range,
-          ""
-        ));
-
-    public static Diagnostic MemberRedefinitionInfo(Position position) =>
-      Diagnostic
-        .Info("Member previously defined here")
-        .WithLabel(new(
-          position.Filename,
-          position.Range,
-          ""
-        ));
   }
 }

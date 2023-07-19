@@ -158,11 +158,7 @@ namespace Spp
         return;
       
       report.AddDiagnostic(ReportHelper.MemberRedefinition(
-        name, definition.Position
-      ));
-
-      report.AddDiagnostic(ReportHelper.MemberRedefinitionInfo(
-        Memory[name].Position
+        name, definition.Position, Memory[name].Position
       ));
     }
 
@@ -310,6 +306,12 @@ namespace Spp
               named.Type!,
               position
             ));
+          }
+          break;
+          
+          case Instruction.Nop i:
+          {
+
           }
           break;
           
