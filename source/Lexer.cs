@@ -128,8 +128,6 @@ namespace Spp
     int index;
     int indent;
     TokenMode mode;
-    int row;
-    int indexOfLineStart;
 
     public Lexer(Report report, string filename)
     {
@@ -140,8 +138,6 @@ namespace Spp
       index = 0;
       indent = 0;
       mode = TokenMode.OnNewLine;
-      row = 0;
-      indexOfLineStart = 0;
 
       NextToken(); // now `Next` is something
 
@@ -160,9 +156,12 @@ namespace Spp
     bool HasNextChar => HasCharOffset(+1);
     char NextChar => CharOffset(+1);
 
-    Position CurrentPosition => new(filename, new(row + 1, index - indexOfLineStart + 1));
+    Position CurrentPosition => CreatePosition(index, 1);
 
-    public Dictionary<string, TokenKind> KEYWORDS1 => KEYWORDS;
+    Position CreatePosition(int index, int length)
+    {
+      return new(filename, new(index, index + length));
+    }
 
     bool HasCharOffset(int offset)
     {
@@ -219,8 +218,6 @@ namespace Spp
             break;
           
           case '\n':
-            row++;
-            indexOfLineStart = index + 1;
             indent = 0;
             mode = TokenMode.OnNewLine;
             break;
@@ -246,7 +243,7 @@ namespace Spp
 
     void IsKeywordToken(string identifier, ref TokenKind kind)
     {
-      foreach (var kw in KEYWORDS1)
+      foreach (var kw in KEYWORDS)
         if (kw.Key == identifier)
         {
           kind = kw.Value;
@@ -256,11 +253,10 @@ namespace Spp
 
     Token CollectWordToken()
     {
-      var position = CurrentPosition;
       var length = 0;
       var startingIndex = index;
       var mode = ConsumeTokenMode();
-      var indent = ConsumeIndent(mode, position);
+      var indent = ConsumeIndent(mode, CurrentPosition);
 
       while (HasChar && MatchWordChar())
       {
@@ -278,6 +274,7 @@ namespace Spp
         length
       );
 
+      var position = CreatePosition(startingIndex, length);
       var kind = TokenKind.Identifier;
       IsNumberToken(value, ref kind);
       IsKeywordToken(value, ref kind);
@@ -323,15 +320,16 @@ namespace Spp
 
     Token CollectPunctuationTokenOrBad()
     {
-      var position = CurrentPosition;
+      var startingIndex = index;
       var mode = ConsumeTokenMode();
-      var indent = ConsumeIndent(mode, position);
+      var indent = ConsumeIndent(mode, CurrentPosition);
       var kind = TokenKind.Bad;
       var value = char.ToString(CurrentChar);
 
       if (!IsDoublePunctuationToken(ref kind, ref value))
         IsSinglePunctuationToken(ref kind, ref value);
       
+      var position = CreatePosition(startingIndex, value.Length);
       return new(kind, value, indent, mode, position);
     }
 
@@ -367,11 +365,10 @@ namespace Spp
       // skipping '
       Advance();
 
-      var position = CurrentPosition;
       var length = 0;
       var startingIndex = index;
       var mode = ConsumeTokenMode();
-      var indent = ConsumeIndent(mode, position);
+      var indent = ConsumeIndent(mode, CurrentPosition);
 
       while (HasChar && !MatchStringChar())
       {
@@ -384,6 +381,8 @@ namespace Spp
         startingIndex,
         length
       );
+
+      var position = CreatePosition(startingIndex - 1, length + 1);
 
       return new(
         TokenKind.String,

@@ -5,7 +5,7 @@ namespace Spp
 {
   public interface IDefinition
   {
-    public struct Var : IDefinition
+    public class Var : IDefinition
     {
       public Position Position { get; init; }
 
@@ -31,7 +31,7 @@ namespace Spp
       }
     }
 
-    public struct Fn : IDefinition
+    public class Fn : IDefinition
     {
       public Position Position { get; init; }
 
@@ -68,7 +68,7 @@ namespace Spp
       }
     }
 
-    public struct Poisoned : IDefinition
+    public class Poisoned : IDefinition
     {
       public Position Position { get; init; }
 
@@ -91,7 +91,7 @@ namespace Spp
       }
     }
 
-    public struct Static : IDefinition
+    public class Static : IDefinition
     {
       public Position Position { get; init; }
 

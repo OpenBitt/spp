@@ -4,7 +4,9 @@ namespace Spp
 {
   public class Emitter
   {
-    readonly StringBuilder code;
+    readonly StringBuilder head;
+
+    readonly StringBuilder body;
 
     readonly Stack<StringBuilder> fnInProgress;
 
@@ -12,7 +14,8 @@ namespace Spp
 
     public Emitter()
     {
-      code = new();
+      head = new();
+      body = new();
       fnInProgress = new();
       indent = 0;
 
@@ -21,8 +24,8 @@ namespace Spp
           ? "int64_t"
           : "int32_t";
 
-      code.AppendLine(@$"
-
+      head.AppendLine(@$"
+// Spp Builtins
 namespace __spp_compiler_internals__
 {{
   namespace included
@@ -37,14 +40,24 @@ namespace __spp_compiler_internals__
   }}
 }}
 
-");
+// Spp Head");
     }
 
     StringBuilder CurrentFn => fnInProgress.Peek();
 
     public override string ToString()
     {
-      return code.ToString();
+      head.AppendLine("\n// Spp Body");
+      head.Append(body);
+      head.Append(@"
+// Spp Entry
+int main()
+{
+  (void)__main();
+  return 0;
+}");
+
+      return head.ToString();
     }
 
     string ToCppType(IType type)
@@ -53,11 +66,12 @@ namespace __spp_compiler_internals__
       {
         IType.Void => "__spp_compiler_internals__::types::Void",
         IType.Int => "__spp_compiler_internals__::types::Int",
-        _ => throw new NotImplementedException()
+        IType.Poisoned => "<?>",
+        _ => throw new NotImplementedException($"{type} cannot be converted")
       };
     }
 
-    string SanitizeName(string name)
+    internal string SanitizeName(string name)
     {
       return $"__{name}";
     }
@@ -65,19 +79,46 @@ namespace __spp_compiler_internals__
     public void PopFn()
     {
       indent -= Helper.INDENT_STEP;
-      code.Append(fnInProgress.Pop());
-      code.AppendLine("}");
+      body.Append(fnInProgress.Pop());
+      body.AppendLine("}");
     }
 
-    public void PushFn(string name, IType.Fn type)
+    public void PushFn(
+      string name,
+      IType.Fn type,
+      string[] parameterNames
+    )
     {
-      var parameterTypes = string.Join<IType>(", ", type.ParameterTypes);
+      head.AppendFormat("{0};\n", BuildFnPrototype(name, type, parameterNames: null));
 
       fnInProgress.Push(new(
-        $"{ToCppType(type.ReturnType)} {SanitizeName(name)}({parameterTypes}) {{\n"
+        $"{BuildFnPrototype(name, type, parameterNames)} {{\n"
       ));
 
       indent += Helper.INDENT_STEP;
+    }
+
+    string JoinParameters(IType[] parameterTypes, string[] parameterNames)
+    {
+      var parameters = new StringBuilder();
+
+      for (var i = 0; i < parameterTypes.Length; i++)
+        parameters.AppendFormat(
+          "{0} {1}",
+          parameterTypes[i], SanitizeName(parameterNames[i])
+        );
+
+      return parameters.ToString();
+    }
+
+    string BuildFnPrototype(string name, IType.Fn type, string[]? parameterNames)
+    {
+      var parameters =
+        parameterNames is not null
+          ? JoinParameters(type.ParameterTypes, parameterNames!)
+          : string.Join<IType>(", ", type.ParameterTypes);
+      
+      return $"{ToCppType(type.ReturnType)} {SanitizeName(name)}({parameters})";
     }
 
     public void EmitStatement(string statement)

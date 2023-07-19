@@ -36,9 +36,29 @@ namespace Spp
     public string Generate()
     {
       if (TryGetEntryPointMember(out var main))
-        ProcessFnDefinition(main);
+      {
+        var mainType = ProcessFnDefinition(main);
+        CheckEntryPointType(mainType, main.Position);
+      }
+      else
+        report.AddDiagnostic(ReportHelper.UndefinedEntryPoint());
 
       return emitter.ToString();
+    }
+
+    void CheckEntryPointType(IType.Fn actualMainType, Position position)
+    {
+      var expectedMainType = new IType.Fn(
+        Array.Empty<IType>(),
+        new IType.Void()
+      );
+
+      if (actualMainType.Equals(expectedMainType))
+        return;
+      
+      report.AddDiagnostic(ReportHelper.BadEntryPointType(
+        expectedMainType, actualMainType, position
+      ));
     }
 
     void PushMemory()
@@ -55,7 +75,7 @@ namespace Spp
 
     bool TryGetEntryPointMember(out IDefinition.Fn definition)
     {
-      definition = new();
+      definition = new(new(), "");
 
       if (!representation.TopLevels.TryGetValue("main", out var opaqueDefinition))
         return false;
@@ -67,15 +87,28 @@ namespace Spp
       return true;
     }
 
-    void ProcessFnDefinition(IDefinition.Fn definition)
+    IType.Fn ProcessFnDefinition(IDefinition.Fn definition)
     {
       PushMemory();
         PushFnDefinition(definition);
-          emitter.PushFn(CurrentFn.Name, CurrentFnType);
+          emitter.PushFn(CurrentFn.Name, CurrentFnType, CurrentFn.Parameters.Keys.ToArray());
+            var fnType = CurrentFnType;
+            LocallyDefineFnParameters();
             ProcessBlock(CurrentFn.Body);
           emitter.PopFn();
         PopFnDefinition();
       PopMemory();
+      
+      return fnType;
+    }
+
+    void LocallyDefineFnParameters()
+    {
+      foreach (var parameter in CurrentFn.Parameters)
+      {
+        EnsureDefinitionIsTyped(parameter.Value);
+        DefineName(parameter.Key, parameter.Value);
+      }
     }
 
     void PopFnDefinition()
@@ -89,10 +122,10 @@ namespace Spp
       fnInProgress.Push((definition, type));
     }
 
-    IType GetDefinitionType(IDefinition definition)
+    void EnsureDefinitionIsTyped(IDefinition definition)
     {
       if (definition.Type is not null)
-        return definition.Type;
+        return;
 
       definition.Type = definition switch
       {
@@ -100,8 +133,12 @@ namespace Spp
         IDefinition.Var d => MetaProcessBlockAndGetType(d.TypeExpression),
         _ => throw new NotImplementedException()
       };
+    }
 
-      return definition.Type;
+    IType GetDefinitionType(IDefinition definition)
+    {
+      EnsureDefinitionIsTyped(definition);
+      return definition.Type!;
     }
 
     IDefinition GetName(string name, Position position)
@@ -115,7 +152,7 @@ namespace Spp
       return new IDefinition.Poisoned(position, name);
     }
 
-    void DeclareName(string name, IDefinition definition)
+    void DefineName(string name, IDefinition definition)
     {
       if (Memory.TryAdd(name, definition))
         return;
@@ -228,23 +265,53 @@ namespace Spp
         switch (instruction)
         {
           case Instruction.RetVoid i:
+          {
             CheckFnReturnType(new IType.Void(), i.Position);
             emitter.RetVoid();
-            break;
+          }
+          break;
           
           case Instruction.LoadImmediate i:
+          {
             VirtualLoad(new IValue.Static(
               i.Immediate,
               GetImmediateType(i.Immediate),
               i.Position
             ));
-            break;
+          }
+          break;
           
           case Instruction.Ret i:
+          {
             var value = VirtualPop();
             CheckFnReturnType(value.Type, value.Position);
             emitter.Ret(value);
-            break;
+          }
+          break;
+          
+          case Instruction.LoadName i:
+          {
+            var position = i.Position;
+            var named = GetName(i.Name, position);
+
+            if (named.Type is IType.Poisoned)
+            {
+              VirtualLoad(new IValue.Poisoned(named.Type, position));
+              break;
+            }
+
+            if (named.HasStaticValue)
+            {
+              // TODO
+            }
+
+            VirtualLoad(new IValue.Runtime(
+              emitter.SanitizeName(i.Name),
+              named.Type!,
+              position
+            ));
+          }
+          break;
           
           default:
             throw new NotImplementedException();
@@ -260,19 +327,20 @@ namespace Spp
       };
     }
 
-    void CheckTypes(IType expected, IType actual, Position position)
+    void CheckTypes(IType expected, IType actual, Position expectedPosition, Position actualPosition)
     {
       if (expected.Equals(actual))
         return;
       
       report.AddDiagnostic(ReportHelper.TypesMismatch(
-        expected, actual, position
+        expected, actual,
+        expectedPosition, actualPosition
       ));
     }
 
     void CheckFnReturnType(IType type, Position position)
     {
-      CheckTypes(CurrentFnType.ReturnType, type, position);
+      CheckTypes(CurrentFnType.ReturnType, type, CurrentFn.Position, position);
     }
   }
 }

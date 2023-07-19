@@ -1,4 +1,5 @@
 using Errata;
+using Spectre.Console;
 
 // TODO: try removing all possible `.Note`s
 //       they are ugly to see
@@ -13,8 +14,8 @@ namespace Spp
         .WithCode("SPP0")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Character '\\t' is not allowed (Replace it with 2 spaces instead)"
+          position.Range,
+          $"character '\\t' is not allowed (Replace it with 2 spaces instead)"
         ));
 
     public static Diagnostic OddIndent(int indent, Position position) =>
@@ -24,8 +25,8 @@ namespace Spp
         .WithNote("Number of spaces in indentation must be even\n")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Indentation here is {indent} spaces, use {indent - 1} or {indent + 1} spaces instead"
+          position.Range,
+          $"indentation here is {indent} spaces, use {indent - 1} or {indent + 1} spaces instead"
         ));
 
     public static Diagnostic FoundCarriageReturn(Position position) =>
@@ -34,8 +35,8 @@ namespace Spp
         .WithCode("SPP2")
         .WithLabel(new(
           position.Filename,
-          new Location(position.Location.Row, position.Location.Column - 1),
-          $"Character '\\r' is not allowed (Reformat the file using LR instead of CRLF)"
+          new Range(position.Range.Start.Value - 1, position.Range.End.Value - 1),
+          $"character '\\r' is not allowed (reformat the file using LR instead of CRLF)"
         ));
 
     public static Diagnostic BadTopLevelSyntax(TokenKind kind, Position position) =>
@@ -50,8 +51,8 @@ namespace Spp
 ")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Expected a valid top level member definition, found token \"{kind}\""
+          position.Range,
+          $"expected a valid top level member definition, found token \"{kind}\""
         ));
 
     public static Diagnostic MemberRedefinition(string name, Position position) =>
@@ -60,8 +61,8 @@ namespace Spp
         .WithCode("SPP4")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Member \"{name}\" is already defined, redefinition is not allowed"
+          position.Range,
+          $"member \"{name}\" is already defined, redefinition is not allowed"
         ));
 
     public static Diagnostic ExpectedToken(
@@ -74,8 +75,8 @@ namespace Spp
         .WithCode("SPP5")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Expected token \"{expectedKind}\", got \"{actualKind}\""
+          position.Range,
+          $"expected token \"{expectedKind}\", got \"{actualKind}\""
         ));
     
     public static Diagnostic ParameterRedefinition(string name, Position position) =>
@@ -84,8 +85,8 @@ namespace Spp
         .WithCode("SPP6")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Parameter \"{name}\" is already defined, redefinition is not allowed"
+          position.Range,
+          $"parameter \"{name}\" is already defined, parameter redefinitions is not allowed"
         ));
     
     public static Diagnostic BadTokenMode(TokenMode expectedMode, Position position) =>
@@ -94,10 +95,10 @@ namespace Spp
         .WithCode("SPP7")
         .WithLabel(new(
           position.Filename,
-          position.Location,
+          position.Range,
           expectedMode == TokenMode.OnTheSameLine
-            ? $"Expected token to be on the previous line, but it is on a new one (Move token to the previous line)"
-            : $"Expected token to be on a new line (Move token to a new line)"
+            ? $"expected token to be on the previous line, but it is on a new one (move token to the previous line)"
+            : $"expected token to be on a new line (move token to a new line)"
         ));
     
     public static Diagnostic BadIndent(int expectedIndent, int actualIndent, Position position) =>
@@ -107,8 +108,8 @@ namespace Spp
         .WithNote("Indentation levels must be 2 spaces each\n")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Expected indentation of {expectedIndent} spaces, got {actualIndent} spaces"
+          position.Range,
+          $"expected indentation of {expectedIndent} spaces, got {actualIndent} spaces"
         ));
     
     public static Diagnostic BadExpressionSyntax(TokenKind kind, Position position) =>
@@ -117,8 +118,8 @@ namespace Spp
         .WithCode("SPP10")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Expected expression/term, got token \"{kind}\""
+          position.Range,
+          $"expected expression/term, got token \"{kind}\""
         ));
     
     public static Diagnostic MalformedNumber(string value, Position position) =>
@@ -127,8 +128,8 @@ namespace Spp
         .WithCode("SPP11")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Token \"Number\" with value \"{value}\" is malformed"
+          position.Range,
+          $"token \"Number\" with value \"{value}\" is malformed"
         ));
     
     public static Diagnostic NotAType(IType type, Position position) =>
@@ -137,8 +138,8 @@ namespace Spp
         .WithCode("SPP12")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"Expected static value of type \"type\", got type \"{type}\""
+          position.Range,
+          $"expected static value of type \"type\", got type \"{type}\""
         ));
 
     public static Diagnostic UndefinedMember(string name, Position position) =>
@@ -147,9 +148,9 @@ namespace Spp
         .WithCode("SPP13")
         .WithLabel(new(
           position.Filename,
-          position.Location,
+          position.Range,
           // TODO: add "did you mean \"{suggestedName}\""
-          $"Member \"{name}\" is not defined"
+          $"member \"{name}\" is not defined in the current context"
         ));
 
     public static Diagnostic NotAStaticValue(Position position) =>
@@ -158,26 +159,69 @@ namespace Spp
         .WithCode("SPP14")
         .WithLabel(new(
           position.Filename,
-          position.Location,
-          $"In this context a static value is expected, but the given one is not"
+          position.Range,
+          $"the context expects a static value"
         ));
 
-    public static Diagnostic TypesMismatch(IType expectedType, IType actualType, Position position) =>
+    public static Diagnostic TypesMismatch(
+      IType expectedType,
+      IType actualType,
+      Position expectedPosition,
+      Position actualPosition
+    ) =>
       Diagnostic
         .Error("Types mismatch")
         .WithCode("SPP15")
-        .WithLabel(new(
-          position.Filename,
-          position.Location,
-          $"Expected type \"{expectedType}\", got \"{actualType}\""
-        ));
+        .WithLabel(
+          new Label(
+            expectedPosition.Filename,
+            expectedPosition.Range,
+            $"the context expected type \"{expectedType}\""
+          )
+          .WithColor(Color.Green)
+        )
+        .WithLabel(
+          new Label(
+            actualPosition.Filename,
+            actualPosition.Range,
+            $"got \"{actualType}\""
+          )
+          .WithColor(Color.Red)
+        );
+
+    public static Diagnostic UndefinedEntryPoint() =>
+      Diagnostic
+        .Error("Entry point not defined")
+        .WithCode("SPP16");
+
+    public static Diagnostic BadEntryPointType(IType expectedType, IType actualType, Position position) =>
+      Diagnostic
+        .Error("Entry point not correctly defined")
+        .WithCode("SPP17")
+        .WithNote("")
+        .WithLabel(
+          new Label(
+            position.Filename,
+            position.Range,
+            $"must be defined as \"{expectedType}\""
+          )
+          .WithColor(Color.Green)
+        )
+        .WithLabel(
+          new Label(
+            position.Filename,
+            position.Range,
+          $"has type \"{actualType}\""
+          )
+          .WithColor(Color.Red)
+        );
     
     public static Diagnostic ParameterRedefinitionInfo(Position position) =>
       Diagnostic
         .Info("Parameter previously defined here")
         .WithLabel(new(
           position.Filename,
-          position.Location,
+          position.Range,
           ""
         ));
 
@@ -186,7 +230,7 @@ namespace Spp
         .Info("Member previously defined here")
         .WithLabel(new(
           position.Filename,
-          position.Location,
+          position.Range,
           ""
         ));
   }

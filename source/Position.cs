@@ -6,17 +6,17 @@ namespace Spp
   {
     public string Filename { get; init; }
 
-    public Location Location { get; init; }
+    public Range Range { get; init; }
 
-    public Position(string filename, Location location)
+    public Position(string filename, Range range)
     {
       Filename = filename;
-      Location = location;
+      Range = range;
     }
 
     public override string ToString()
     {
-      return $"{Filename}:{Location.Row}:{Location.Column}";
+      return $"{Filename}:{Range}";
     }
   }
 }

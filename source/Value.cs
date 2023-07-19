@@ -100,7 +100,7 @@ namespace Spp
 
       public override string ToString()
       {
-        return "_";
+        return "<?>";
       }
     }
 
@@ -149,6 +149,26 @@ namespace Spp
       }
     }
 
+    public struct Runtime : IValue
+    {
+      public IType Type { get; init; }
+      public Position Position { get; init; }
+
+      readonly string _cpp;
+
+      public Runtime(string cpp, IType type, Position position)
+      {
+        Type = type;
+        Position = position;
+        
+        _cpp = cpp;
+      }
+
+      public string Cpp(string type)
+      {
+        return $"({type})({_cpp})";
+      }
+    }
 
     public string Cpp(string type);
     
